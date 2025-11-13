@@ -1,0 +1,220 @@
+.farmer-profile-page {
+  padding: 20px;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto;
+  color: #1f2937;
+  max-width: 1100px;
+  margin: auto;
+}
+
+/* Header */
+.farmer-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.farmer-profile-header h1 {
+  flex: 1;
+  font-size: 22px;
+  margin: 0;
+}
+.farmer-back-btn {
+  background: #3b853f;
+  color:white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.3s ease;
+}
+
+.farmer-back-btn:hover {
+    background: #1b5e20;
+}
+
+.farmer-header-actions {
+  display: flex;
+  gap: 10px;
+}
+.farmer-edit-btn,
+.farmer-save-btn,
+.farmer-cancel-btn,
+.farmer-change-pass-btn {
+  border: none;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: white;
+}
+.farmer-edit-btn {
+  background: #0b5ed7;
+}
+.farmer-save-btn {
+  background: #16a34a;
+}
+.farmer-cancel-btn {
+  background: #ef4444;
+}
+.farmer-change-pass-btn {
+  background: #6b7280;
+}
+
+/* Password box */
+.farmer-password-box {
+  border: 1px solid #e5e7eb;
+  padding: 12px;
+  border-radius: 10px;
+  background: #fafafa;
+  margin-bottom: 20px;
+}
+.farmer-password-box .farmer-row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+}
+.farmer-password-box input {
+  padding: 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+}
+.farmer-password-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Profile layout */
+.farmer-profile-card {
+  display: flex;
+  gap: 20px;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+/* Left column */
+.farmer-left-col {
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.farmer-photo-wrap {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #f3f4f6;
+}
+.farmer-profile-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.farmer-upload-overlay {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(17, 24, 39, 0.8);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.farmer-upload-overlay input {
+  display: none;
+}
+.farmer-summary {
+  text-align: center;
+}
+.farmer-summary h2 {
+  font-size: 18px;
+  margin: 4px 0;
+}
+.farmer-summary p {
+  font-size: 14px;
+  color: #374151;
+}
+
+/* Right column */
+.farmer-right-col {
+  flex: 1;
+}
+.farmer-profile-form h3 {
+  margin-top: 10px;
+  margin-bottom: 8px;
+  font-size: 16px;
+  color: #0f172a;
+}
+.farmer-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.farmer-form-group {
+  display: flex;
+  flex-direction: column;
+}
+.farmer-form-group.wide {
+  grid-column: 1 / -1;
+}
+.farmer-form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.farmer-form-group input,
+.farmer-form-group select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: white;
+}
+.farmer-form-group input[readonly],
+.farmer-form-group select:disabled {
+  background: #f8fafc;
+  color: #374151;
+}
+
+/* Buttons */
+.farmer-btn-primary {
+  background: #0b5ed7;
+  color: white;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.farmer-btn-secondary {
+  background: #e5e7eb;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .farmer-profile-card {
+    flex-direction: column;
+  }
+  .farmer-left-col {
+    width: 100%;
+    align-items: center;
+  }
+  .farmer-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

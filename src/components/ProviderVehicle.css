@@ -1,0 +1,178 @@
+.provider-vehicle {
+  padding: 20px;
+  background: #f8f9fb;
+  min-height: 100vh;
+}
+
+/* ===== HEADER ===== */
+.vehicle-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.vehicle-header h2 {
+  font-size: 1.8rem;
+  color: #2e7d32;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #e0e0e0;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.back-btn:hover {
+  background: #c8e6c9;
+}
+
+/* ===== VEHICLE GRID ===== */
+.vehicle-container {
+  display: flex;
+}
+
+.vehicle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
+  max-width: 1200px;
+}
+
+.vehicle-card {
+  background: #fff;
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: transform 0.3s;
+}
+
+.vehicle-card:hover {
+  transform: translateY(-5px);
+}
+
+.vehicle-img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+
+.vehicle-info {
+  padding: 15px;
+}
+
+.vehicle-info h3 {
+  font-size: 1.3rem;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.vehicle-info p {
+  font-size: 0.95rem;
+  margin: 4px 0;
+  color: #555;
+}
+
+/* ===== STATUS BADGE ===== */
+.status {
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: white;
+}
+
+.status.available {
+  background-color: #9af19d;
+}
+
+.status.booked {
+  background-color: #f44336;
+}
+
+.status.maintenance {
+  background-color: #ff9800;
+}
+
+/* ===== BUTTONS ===== */
+.maint-btn {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: white;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: 0.3s;
+}
+
+.maint-btn.maint {
+  background-color: #ff9800;
+}
+
+.maint-btn.available {
+  background-color: #4caf50;
+}
+
+.maint-btn:hover {
+  opacity: 0.9;
+}
+
+/* ===== VIEW RC LINK ===== */
+.view-rc-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: #1976d2;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.view-rc-link:hover {
+  text-decoration: underline;
+}
+
+/* ===== NO VEHICLES ===== */
+.no-vehicle {
+  font-size: 1.1rem;
+  color: #555;
+  text-align: center;
+  margin-top: 40px;
+}
+
+/* ===== DELETE BUTTON ===== */
+.delete-btn {
+  background-color: #f44336;
+  border: none;
+  color: white;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: 0.3s;
+}
+
+.delete-btn:hover {
+  background-color: #d32f2f;
+}
+
+/* Button Row for actions */
+.button-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
