@@ -8,6 +8,21 @@ const ProviderVehicle = () => {
   const [vehicles, setVehicles] = useState([]);
   const user = JSON.parse(localStorage.getItem("user"));
 
+  // ✅ SAME IMAGE HANDLER AS PROVIDERDASHBOARD
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return "/default-vehicle.jpg";
+
+    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+      return imagePath; // Cloudinary URL
+    }
+
+    if (imagePath.startsWith("/uploads")) {
+      return `http://localhost:5000${imagePath}`; // Local uploads folder
+    }
+
+    return "/default-vehicle.jpg";
+  };
+
   // ✅ Fetch all provider vehicles
   useEffect(() => {
     const fetchVehicles = async () => {
@@ -46,7 +61,6 @@ const ProviderVehicle = () => {
         prev.map((v) => (v._id === id ? { ...v, status: newStatus } : v))
       );
 
-      // ✅ Reflect same in dashboard instantly
       localStorage.setItem("vehiclesUpdated", Date.now());
     } catch (err) {
       console.error(err);
@@ -54,7 +68,7 @@ const ProviderVehicle = () => {
     }
   };
 
-  // ✅ Delete Vehicle (removes from DB + uploads)
+  // ✅ Delete Vehicle
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this vehicle?"))
       return;
@@ -69,10 +83,8 @@ const ProviderVehicle = () => {
 
       alert("✅ Vehicle deleted successfully");
 
-      // Remove from UI
       setVehicles((prev) => prev.filter((v) => v._id !== id));
 
-      // ✅ Notify dashboard of change
       localStorage.setItem("vehiclesUpdated", Date.now());
     } catch (err) {
       console.error(err);
@@ -105,12 +117,9 @@ const ProviderVehicle = () => {
                   v.status?.toLowerCase() || "available"
                 }`}
               >
+                {/* ✅ FIXED IMAGE HANDLING (Cloudinary + Local + Fallback) */}
                 <img
-                  src={
-                    v.vehicleImages && v.vehicleImages[0]
-                      ? `http://localhost:5000${v.vehicleImages[0]}`
-                      : "/default-vehicle.jpg" // fallback
-                  }
+                  src={getImageUrl(v.vehicleImages?.[0])}
                   alt={v.model}
                   className="vehicle-img"
                 />
@@ -139,8 +148,10 @@ const ProviderVehicle = () => {
                       {v.status || "Available"}
                     </span>
                   </p>
+
+                  {/* ✅ FIXED RC VIEW LINK */}
                   <a
-                    href={`http://localhost:5000${v.rcFile}`}
+                    href={getImageUrl(v.rcFile)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="view-rc-link"
