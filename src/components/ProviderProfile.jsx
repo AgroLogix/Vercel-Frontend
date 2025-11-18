@@ -24,7 +24,7 @@ const emptyUser = {
   addressLine: "",
   city: "",
   state: "",
-  district:"",
+  district: "",
   pincode: "",
   baseLocation: "",
   aadhaar: "",
@@ -37,6 +37,7 @@ const ProviderProfile = () => {
   const stored = JSON.parse(localStorage.getItem("user")) || {};
   const [user, setUser] = useState({ ...emptyUser, ...stored });
   const [editing, setEditing] = useState(false);
+  const [uploading, setUploading] = useState(false); // ✅ NEW: Loading state
   const [showPasswordBox, setShowPasswordBox] = useState(false);
   const [passwords, setPasswords] = useState({
     current: "",
@@ -45,61 +46,99 @@ const ProviderProfile = () => {
   });
 
   useEffect(() => {
-  const s = JSON.parse(localStorage.getItem("user")) || {};
-  if (!s.userId) return;
-  axios.get(`http://localhost:5000/api/auth/provider/${s.userId}`)
-    .then(res => setUser(res.data))
-    .catch(() => setUser({ ...emptyUser, ...s }));
-}, []);
-
+    const s = JSON.parse(localStorage.getItem("user")) || {};
+    if (!s.userId) return;
+    axios
+      .get(`http://localhost:5000/api/auth/provider/${s.userId}`)
+      .then((res) => setUser(res.data))
+      .catch(() => setUser({ ...emptyUser, ...s }));
+  }, []);
 
   const onChange = (field, value) => {
     setUser((u) => ({ ...u, [field]: value }));
   };
 
+  // ✅ ENHANCED: Helper function to get correct image URL
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return "/default-avatar.png";
+    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+      return imagePath; // Cloudinary URL
+    }
+    if (imagePath.startsWith("/uploads")) {
+      return `http://localhost:5000${imagePath}`; // Old local path
+    }
+    return "/default-avatar.png";
+  };
+
+  // ✅ ENHANCED: Profile picture upload with validation, loading, and Cloudinary support
   const handleProfilePic = async (e) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const formData = new FormData();
-  formData.append("profilePic", file);
+    // ✅ File validation
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      alert("❌ Only JPG, PNG, and GIF images are allowed!");
+      return;
+    }
 
-  try {
-    const res = await axios.post(
-      `http://localhost:5000/api/auth/provider/${user.userId}/upload`,
-      formData,
-      { headers: { "Content-Type": "multipart/form-data" } }
-    );
+    if (file.size > 5 * 1024 * 1024) {
+      alert("❌ File size must be less than 5MB!");
+      return;
+    }
 
-    // ✅ Update local storage + broadcast event
-    const updatedUser = { ...user, profilePic: res.data.profilePic };
-    setUser(updatedUser);
-    localStorage.setItem("user", JSON.stringify(updatedUser));
+    setUploading(true); // ✅ Show loading state
 
-    // 🔄 Notify other tabs/pages (e.g., ProviderDashboard)
-    window.dispatchEvent(new Event("storage"));
+    const formData = new FormData();
+    formData.append("profilePic", file);
 
-    alert("Profile image uploaded successfully!");
-  } catch (err) {
-    console.error(err);
-    alert("Image upload failed. Check backend.");
-  }
-};
+    try {
+      const res = await axios.post(
+        `http://localhost:5000/api/auth/provider/${user.userId}/upload`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            console.log(`Upload Progress: ${percentCompleted}%`);
+          },
+        }
+      );
 
+      // ✅ Update with Cloudinary URL
+      const updatedUser = { ...user, profilePic: res.data.profilePic };
+      setUser(updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      window.dispatchEvent(new Event("storage"));
+      alert("✅ Profile image uploaded to cloud successfully!");
+    } catch (err) {
+      console.error(err);
+      alert(
+        "❌ Image upload failed: " +
+          (err.response?.data?.message || err.message)
+      );
+    } finally {
+      setUploading(false); // ✅ Hide loading state
+    }
+  };
 
   const handleSave = async (e) => {
-  e?.preventDefault();
-  try {
-    await axios.put(`http://localhost:5000/api/auth/provider/${user.userId}`, user);
-    localStorage.setItem("user", JSON.stringify(user));
-    setEditing(false);
-    alert("Profile saved successfully to MongoDB.");
-  } catch (err) {
-    console.error(err);
-    alert("Failed to save profile. Check server connection.");
-  }
-};
-
+    e?.preventDefault();
+    try {
+      await axios.put(
+        `http://localhost:5000/api/auth/provider/${user.userId}`,
+        user
+      );
+      localStorage.setItem("user", JSON.stringify(user));
+      setEditing(false);
+      alert("Profile saved successfully to MongoDB.");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save profile. Check server connection.");
+    }
+  };
 
   const handleCancel = () => {
     const s = JSON.parse(localStorage.getItem("user")) || {};
@@ -118,7 +157,10 @@ const ProviderProfile = () => {
       return;
     }
     onChange("password", passwords.newPassword);
-    localStorage.setItem("user", JSON.stringify({ ...user, password: passwords.newPassword }));
+    localStorage.setItem(
+      "user",
+      JSON.stringify({ ...user, password: passwords.newPassword })
+    );
     setPasswords({ current: "", newPassword: "", confirm: "" });
     setShowPasswordBox(false);
     alert("Password updated locally.");
@@ -167,7 +209,9 @@ const ProviderProfile = () => {
             <input
               type="password"
               value={passwords.current}
-              onChange={(e) => setPasswords((p) => ({ ...p, current: e.target.value }))}
+              onChange={(e) =>
+                setPasswords((p) => ({ ...p, current: e.target.value }))
+              }
               placeholder="Current password (optional for local)"
             />
           </div>
@@ -176,7 +220,9 @@ const ProviderProfile = () => {
             <input
               type="password"
               value={passwords.newPassword}
-              onChange={(e) => setPasswords((p) => ({ ...p, newPassword: e.target.value }))}
+              onChange={(e) =>
+                setPasswords((p) => ({ ...p, newPassword: e.target.value }))
+              }
               required
             />
           </div>
@@ -185,13 +231,23 @@ const ProviderProfile = () => {
             <input
               type="password"
               value={passwords.confirm}
-              onChange={(e) => setPasswords((p) => ({ ...p, confirm: e.target.value }))}
+              onChange={(e) =>
+                setPasswords((p) => ({ ...p, confirm: e.target.value }))
+              }
               required
             />
           </div>
           <div className="password-actions">
-            <button type="submit" className="btn-primary">Update Password</button>
-            <button type="button" className="btn-secondary" onClick={() => setShowPasswordBox(false)}>Close</button>
+            <button type="submit" className="btn-primary">
+              Update Password
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setShowPasswordBox(false)}
+            >
+              Close
+            </button>
           </div>
         </form>
       )}
@@ -200,31 +256,63 @@ const ProviderProfile = () => {
       <div className="profile-card">
         <div className="left-col">
           <div className="photo-wrap">
+            {/* ✅ UPDATED: Image with Cloudinary support */}
             <img
-              src={
-    user.profilePic
-      ? `http://localhost:5000${user.profilePic}`
-      : "/default_profile.png"
-  }
+              src={getImageUrl(user.profilePic)}
               alt="Profile"
               className="profile-photo"
+              onError={(e) => {
+                e.target.src = "/default-avatar.png";
+              }}
             />
             {editing && (
               <label className="upload-overlay">
-                <input type="file" accept="image/*" onChange={handleProfilePic} />
-                <span><FaCamera /> Change</span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/gif"
+                  onChange={handleProfilePic}
+                  disabled={uploading} // ✅ Disable during upload
+                />
+                <span>
+                  <FaCamera /> {uploading ? "Uploading..." : "Change"}
+                </span>
               </label>
             )}
           </div>
 
+          {/* ✅ NEW: Loading indicator */}
+          {uploading && (
+            <div
+              style={{
+                marginTop: "10px",
+                color: "#7c3aed",
+                fontSize: "14px",
+                fontWeight: "bold",
+                textAlign: "center",
+              }}
+            >
+              ⏳ Uploading to cloud...
+            </div>
+          )}
+
           <div className="summary">
             <h2>
-              {user.firstName ? `${user.firstName} ${user.lastName || ""}` : "Provider Name"}
+              {user.firstName
+                ? `${user.firstName} ${user.lastName || ""}`
+                : "Provider Name"}
             </h2>
-            <p><strong>User ID:</strong> {user.userId || "AGX-PRV-XXXX"}</p>
-            <p><strong>Base Location:</strong> {user.baseLocation || "N/A"}</p>
-            <p><strong>Total Vehicles:</strong> N/A</p>
-            <p><strong>Avg Rating:</strong> ★ 0.0</p>
+            <p>
+              <strong>User ID:</strong> {user.userId || "AGX-PRV-XXXX"}
+            </p>
+            <p>
+              <strong>Base Location:</strong> {user.baseLocation || "N/A"}
+            </p>
+            <p>
+              <strong>Total Vehicles:</strong> N/A
+            </p>
+            <p>
+              <strong>Avg Rating:</strong> ★ 0.0
+            </p>
           </div>
         </div>
 
@@ -401,8 +489,16 @@ const ProviderProfile = () => {
 
             {editing && (
               <div className="form-actions-bottom">
-                <button type="submit" className="btn-primary">Save Profile</button>
-                <button type="button" className="btn-secondary" onClick={handleCancel}>Cancel</button>
+                <button type="submit" className="btn-primary">
+                  Save Profile
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={handleCancel}
+                >
+                  Cancel
+                </button>
               </div>
             )}
           </form>

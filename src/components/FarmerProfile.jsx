@@ -35,6 +35,7 @@ const FarmerProfile = () => {
   const stored = JSON.parse(localStorage.getItem("user")) || {};
   const [user, setUser] = useState({ ...emptyUser, ...stored });
   const [editing, setEditing] = useState(false);
+  const [uploading, setUploading] = useState(false); // ✅ NEW: Loading state
   const [showPasswordBox, setShowPasswordBox] = useState(false);
   const [passwords, setPasswords] = useState({
     current: "",
@@ -56,28 +57,67 @@ const FarmerProfile = () => {
     setUser((u) => ({ ...u, [field]: value }));
   };
 
-  // 🖼️ Upload profile picture (optional)
+  // ✅ ENHANCED: Helper function to get correct image URL (Cloudinary + Local)
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return "/default-avatar.png";
+    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+      return imagePath; // Cloudinary URL
+    }
+    if (imagePath.startsWith("/uploads")) {
+      return `http://localhost:5000${imagePath}`; // Old local path
+    }
+    return "/default-avatar.png";
+  };
+
+  // ✅ ENHANCED: Profile picture upload with validation, loading, and Cloudinary support
   const handleProfilePic = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // ✅ File validation
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      alert("❌ Only JPG, PNG, and GIF images are allowed!");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("❌ File size must be less than 5MB!");
+      return;
+    }
+
+    setUploading(true); // ✅ Show loading state
 
     const formData = new FormData();
     formData.append("profilePic", file);
 
     try {
       const res = await axios.post(
-        `http://localhost:5000/api/auth/provider/${user.userId}/upload`, // ✅ reuse same upload route
+        `http://localhost:5000/api/auth/provider/${user.userId}/upload`,
         formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            console.log(`Upload Progress: ${percentCompleted}%`);
+          },
+        }
       );
 
       const updatedUser = { ...user, profilePic: res.data.profilePic };
       setUser(updatedUser);
       localStorage.setItem("user", JSON.stringify(updatedUser));
-      alert("Profile image uploaded successfully!");
+      alert("✅ Profile image uploaded to cloud successfully!");
     } catch (err) {
       console.error(err);
-      alert("Image upload failed.");
+      alert(
+        "❌ Image upload failed: " +
+          (err.response?.data?.message || err.message)
+      );
+    } finally {
+      setUploading(false); // ✅ Hide loading state
     }
   };
 
@@ -200,24 +240,44 @@ const FarmerProfile = () => {
       <div className="farmer-profile-card">
         <div className="farmer-left-col">
           <div className="farmer-photo-wrap">
+            {/* ✅ ENHANCED: Image with Cloudinary support */}
             <img
-              src={
-                user.profilePic
-                  ? `http://localhost:5000${user.profilePic}`
-                  : "/default_profile.png"
-              }
+              src={getImageUrl(user.profilePic)}
               alt="Profile"
               className="farmer-profile-photo"
+              onError={(e) => {
+                e.target.src = "/default-avatar.png";
+              }}
             />
             {editing && (
               <label className="farmer-upload-overlay">
-                <input type="file" accept="image/*" onChange={handleProfilePic} />
+                <input
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/gif"
+                  onChange={handleProfilePic}
+                  disabled={uploading} // ✅ Disable during upload
+                />
                 <span>
-                  <FaCamera /> Change
+                  <FaCamera /> {uploading ? "Uploading..." : "Change"}
                 </span>
               </label>
             )}
           </div>
+
+          {/* ✅ NEW: Loading indicator */}
+          {uploading && (
+            <div
+              style={{
+                marginTop: "10px",
+                color: "#6b8e23",
+                fontSize: "14px",
+                fontWeight: "bold",
+                textAlign: "center",
+              }}
+            >
+              ⏳ Uploading to cloud...
+            </div>
+          )}
 
           <div className="farmer-summary">
             <h2>
@@ -308,9 +368,7 @@ const FarmerProfile = () => {
                 <input
                   type="text"
                   value={user.addressLine}
-                  onChange={(e) =>
-                    onChange("addressLine", e.target.value)
-                  }
+                  onChange={(e) => onChange("addressLine", e.target.value)}
                   readOnly={!editing}
                 />
               </div>
@@ -347,6 +405,19 @@ const FarmerProfile = () => {
                   type="text"
                   value={user.pincode}
                   onChange={(e) => onChange("pincode", e.target.value)}
+                  readOnly={!editing}
+                />
+              </div>
+            </div>
+
+            <h3>Farm Information</h3>
+            <div className="farmer-form-grid">
+              <div className="farmer-form-group wide">
+                <label>Farm Location</label>
+                <input
+                  type="text"
+                  value={user.farmLocation}
+                  onChange={(e) => onChange("farmLocation", e.target.value)}
                   readOnly={!editing}
                 />
               </div>

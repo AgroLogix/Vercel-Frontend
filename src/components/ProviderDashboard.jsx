@@ -17,12 +17,24 @@ const ProviderDashboard = () => {
   const [greeting, setGreeting] = useState("");
   const [vehicles, setVehicles] = useState([]);
   const [bookings, setBookings] = useState([]);
-  const [showModal, setShowModal] = useState(false); // ✅ Modal visibility state
+  const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
 
   const [user, setUser] = useState(
     JSON.parse(localStorage.getItem("user")) || {}
   );
+
+  // ✅ NEW: Helper function to get correct image URL (Cloudinary + Local)
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return "/placeholder-vehicle.png";
+    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+      return imagePath; // Cloudinary URL
+    }
+    if (imagePath.startsWith("/uploads")) {
+      return `http://localhost:5000${imagePath}`; // Old local path
+    }
+    return "/placeholder-vehicle.png";
+  };
 
   useEffect(() => {
     const handleUserUpdate = () => {
@@ -59,45 +71,46 @@ const ProviderDashboard = () => {
   };
 
   const handleAddVehicle = () => {
-    setShowModal(true); // ✅ open modal
+    setShowModal(true);
   };
 
   const handleAccept = async (id) => {
-  try {
-    await fetch(`http://localhost:5000/api/bookings/${id}/status`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "Accepted" }),
-    });
+    try {
+      await fetch(`http://localhost:5000/api/bookings/${id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Accepted" }),
+      });
 
-    setBookings((prev) =>
-      prev.map((b) => (b._id === id ? { ...b, status: "Accepted" } : b))
-    );
-  } catch (err) {
-    console.error("Error accepting booking:", err);
-  }
-};
+      setBookings((prev) =>
+        prev.map((b) => (b._id === id ? { ...b, status: "Accepted" } : b))
+      );
+    } catch (err) {
+      console.error("Error accepting booking:", err);
+    }
+  };
 
   const handleReject = async (id) => {
-  try {
-    await fetch(`http://localhost:5000/api/bookings/${id}/status`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "Rejected" }),
-    });
+    try {
+      await fetch(`http://localhost:5000/api/bookings/${id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Rejected" }),
+      });
 
-    setBookings((prev) =>
-      prev.map((b) => (b._id === id ? { ...b, status: "Rejected" } : b))
-    );
-  } catch (err) {
-    console.error("Error rejecting booking:", err);
-  }
-};
+      setBookings((prev) =>
+        prev.map((b) => (b._id === id ? { ...b, status: "Rejected" } : b))
+      );
+    } catch (err) {
+      console.error("Error rejecting booking:", err);
+    }
+  };
 
-// ✅ NEW: Handle delivery complete
   const handleDeliveryComplete = async (bookingId) => {
     try {
-      await axios.put(`http://localhost:5000/api/bookings/deliver/${bookingId}`);
+      await axios.put(
+        `http://localhost:5000/api/bookings/deliver/${bookingId}`
+      );
       alert("✅ Delivery marked as completed!");
       setBookings((prev) =>
         prev.map((b) =>
@@ -117,22 +130,6 @@ const ProviderDashboard = () => {
     }
   }, []);
 
-  // 🆕 FETCH VEHICLES WHEN DASHBOARD LOADS
-  // useEffect(() => {
-  //   const fetchVehicles = async () => {
-  //     try {
-  //       const res = await fetch(
-  //         `http://localhost:5000/api/vehicles/${user.userId}`
-  //       );
-  //       const data = await res.json();
-  //       setVehicles(data);
-  //     } catch (err) {
-  //       console.error("Error fetching vehicles", err);
-  //     }
-  //   };
-  //   if (user?.userId) fetchVehicles();
-  // }, [user]);
-
   useEffect(() => {
     const fetchVehicles = async () => {
       const res = await fetch(
@@ -144,7 +141,7 @@ const ProviderDashboard = () => {
     if (user?.userId) fetchVehicles();
   }, [user]);
 
-   useEffect(() => {
+  useEffect(() => {
     const fetchBookings = async () => {
       try {
         const res = await fetch(
@@ -159,11 +156,9 @@ const ProviderDashboard = () => {
     if (user?.userId) fetchBookings();
   }, [user]);
 
-  // 🔄 Auto-refresh vehicles when changed in ProviderVehicle page
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === "vehiclesUpdated") {
-        // Re-fetch vehicles to stay in sync
         fetchVehicles();
       }
     };
@@ -229,8 +224,8 @@ const ProviderDashboard = () => {
             Help & Support
           </button>
           <div className="nav-btn disabled-btn" title="Coming Soon">
-  Earning
-</div>
+            Earning
+          </div>
 
           <button
             className="nav-btn"
@@ -242,14 +237,14 @@ const ProviderDashboard = () => {
 
         <div className="navbar-right">
           <FaBell className="bell-icon" />
+          {/* ✅ UPDATED: Profile picture with Cloudinary support */}
           <img
-            src={
-              user?.profilePic
-                ? `http://localhost:5000${user.profilePic}`
-                : "/default_profile.png"
-            }
+            src={getImageUrl(user?.profilePic)}
             alt="Profile"
             className="profile-pic"
+            onError={(e) => {
+              e.target.src = logo;
+            }}
           />
 
           <button className="logout-btn" onClick={handleLogout}>
@@ -274,7 +269,6 @@ const ProviderDashboard = () => {
             <FaSearch className="search-icon" />
             <input
               type="text"
-              // placeholder="Track using Tracking ID"
               placeholder="Coming Soon,Now not available"
               className="search-input"
             />
@@ -287,29 +281,27 @@ const ProviderDashboard = () => {
 
       {/* ===== DASHBOARD STAT BOXES ===== */}
       <div className="stats-section">
-  <div className="stat-box">
-    <h4>Total Bookings</h4>
-    <p>{bookings.length}</p>
-  </div>
-  <div className="stat-box">
-    <h4>Active Bookings</h4>
-    <p>{bookings.filter((b) => b.status === "Accepted").length}</p>
-  </div>
-  <div className="stat-box">
-    <h4>Total Vehicles</h4>
-    <p>{vehicles.length}</p>
-  </div>
-  <div className="stat-box disabled-box" title="Coming Soon">
-  <h4>Total Earnings</h4>
-  <p>₹0</p>
-</div>
-<div className="stat-box disabled-box" title="Coming Soon">
-  <h4>Reviews</h4>
-  <p>0 ★</p>
-</div>
-
-</div>
-
+        <div className="stat-box">
+          <h4>Total Bookings</h4>
+          <p>{bookings.length}</p>
+        </div>
+        <div className="stat-box">
+          <h4>Active Bookings</h4>
+          <p>{bookings.filter((b) => b.status === "Accepted").length}</p>
+        </div>
+        <div className="stat-box">
+          <h4>Total Vehicles</h4>
+          <p>{vehicles.length}</p>
+        </div>
+        <div className="stat-box disabled-box" title="Coming Soon">
+          <h4>Total Earnings</h4>
+          <p>₹0</p>
+        </div>
+        <div className="stat-box disabled-box" title="Coming Soon">
+          <h4>Reviews</h4>
+          <p>0 ★</p>
+        </div>
+      </div>
 
       {/* ===== VEHICLE LIST BELOW BOXES ===== */}
       <div className="vehicle-list-section">
@@ -320,10 +312,14 @@ const ProviderDashboard = () => {
           <div className="vehicle-list">
             {vehicles.map((v) => (
               <div key={v._id} className="vehicle-card">
+                {/* ✅ UPDATED: Vehicle image with Cloudinary support */}
                 <img
-                  src={`http://localhost:5000${v.vehicleImages[0]}`}
+                  src={getImageUrl(v.vehicleImages?.[0])}
                   alt={v.model}
                   className="vehicle-thumb"
+                  onError={(e) => {
+                    e.target.src = "/placeholder-vehicle.png";
+                  }}
                 />
                 <div className="vehicle-info">
                   <h4>{v.model}</h4>
@@ -344,8 +340,9 @@ const ProviderDashboard = () => {
                     <strong>Status:</strong>{" "}
                     <span>{v.status || "Available"}</span>
                   </p>
+                  {/* ✅ UPDATED: RC file with Cloudinary support */}
                   <a
-                    href={`http://localhost:5000${v.rcFile}`}
+                    href={getImageUrl(v.rcFile)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="view-rc-link"
@@ -360,54 +357,54 @@ const ProviderDashboard = () => {
       </div>
 
       {/* ===== BOOKING STATUS SECTION ===== */}
-<div className="booking-status-section">
-  <h3>Pending Bookings</h3>
-  {bookings.filter((b) => b.status === "Pending").length === 0 ? (
-    <p className="no-bookings">No pending booking requests.</p>
-  ) : (
-    <div className="booking-list">
-      {bookings
-        .filter((b) => b.status === "Pending")
-        .map((b) => (
-          <div key={b._id} className="booking-card">
-            <div className="booking-details">
-              <h4>
-            Farmer:{b.farmerDetails?.name || b.farmerName || "N/A"}
-          </h4>
-              <p>
-                <strong>Product:</strong> {b.productName}
-              </p>
-              <p>
-                <strong>Quantity:</strong> {b.quantity} tons
-              </p>
-              <p>
-                <strong>Route:</strong> {b.source} ➝ {b.destination}
-              </p>
-              <p>
-                <strong>Delivery Date:</strong> {b.deliveryDate}
-              </p>
-            </div>
-            <div className="booking-actions">
-              <button
-                className="accept-btn"
-                onClick={() => handleAccept(b._id)}
-              >
-                Accept
-              </button>
-              <button
-                className="reject-btn"
-                onClick={() => handleReject(b._id)}
-              >
-                Reject
-              </button>
-            </div>
+      <div className="booking-status-section">
+        <h3>Pending Bookings</h3>
+        {bookings.filter((b) => b.status === "Pending").length === 0 ? (
+          <p className="no-bookings">No pending booking requests.</p>
+        ) : (
+          <div className="booking-list">
+            {bookings
+              .filter((b) => b.status === "Pending")
+              .map((b) => (
+                <div key={b._id} className="booking-card">
+                  <div className="booking-details">
+                    <h4>
+                      Farmer: {b.farmerDetails?.name || b.farmerName || "N/A"}
+                    </h4>
+                    <p>
+                      <strong>Product:</strong> {b.productName}
+                    </p>
+                    <p>
+                      <strong>Quantity:</strong> {b.quantity} tons
+                    </p>
+                    <p>
+                      <strong>Route:</strong> {b.source} ➝ {b.destination}
+                    </p>
+                    <p>
+                      <strong>Delivery Date:</strong> {b.deliveryDate}
+                    </p>
+                  </div>
+                  <div className="booking-actions">
+                    <button
+                      className="accept-btn"
+                      onClick={() => handleAccept(b._id)}
+                    >
+                      Accept
+                    </button>
+                    <button
+                      className="reject-btn"
+                      onClick={() => handleReject(b._id)}
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
           </div>
-        ))}
-    </div>
-  )}
-</div>
+        )}
+      </div>
 
- {/* ===== CONFIRMED BOOKINGS SECTION ===== */}
+      {/* ===== CONFIRMED BOOKINGS SECTION ===== */}
       <div className="confirmed-bookings-section">
         <h3>Confirmed Bookings</h3>
         {bookings.filter((b) => b.status === "Accepted").length === 0 ? (
@@ -415,7 +412,9 @@ const ProviderDashboard = () => {
         ) : (
           <div className="booking-list">
             {bookings
-              .filter((b) => b.status === "Accepted" || b.status === "Delivered")
+              .filter(
+                (b) => b.status === "Accepted" || b.status === "Delivered"
+              )
               .map((b) => (
                 <div key={b._id} className="booking-card confirmed">
                   <div className="booking-details">
@@ -446,7 +445,6 @@ const ProviderDashboard = () => {
                         <p className="status-text accepted">
                           ✅ Booking Confirmed
                         </p>
-                        {/* ✅ New Delivered Button */}
                         <button
                           className="deliver-btn"
                           onClick={() => handleDeliveryComplete(b._id)}
@@ -461,7 +459,6 @@ const ProviderDashboard = () => {
           </div>
         )}
       </div>
-
 
       {/* ===== ADD VEHICLE MODAL ===== */}
       {showModal && (

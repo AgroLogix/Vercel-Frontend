@@ -28,9 +28,21 @@ const FarmerDashboard = () => {
     destination: "",
     deliveryDate: "",
   });
-  const navigate = useNavigate();
 
+  const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user"));
+
+  // ✅ Helper function to get correct image URL
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return "/placeholder-vehicle.png";
+    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+      return imagePath; // Cloudinary URL
+    }
+    if (imagePath.startsWith("/uploads")) {
+      return `http://localhost:5000${imagePath}`; // Old local path
+    }
+    return "/placeholder-vehicle.png";
+  };
 
   // Time update
   useEffect(() => {
@@ -58,11 +70,8 @@ const FarmerDashboard = () => {
     navigate("/");
   };
 
-  // ✅ Load bookings and vehicles
+  // ✅ Load vehicles
   useEffect(() => {
-    const storedBookings = JSON.parse(localStorage.getItem("bookings")) || [];
-    setBookings(storedBookings);
-
     const fetchVehicles = async () => {
       try {
         const res = await axios.get("http://localhost:5000/api/vehicles");
@@ -71,7 +80,6 @@ const FarmerDashboard = () => {
         console.error("Error fetching vehicles:", err);
       }
     };
-
     fetchVehicles();
   }, []);
 
@@ -83,7 +91,6 @@ const FarmerDashboard = () => {
   // ✅ Confirm booking
   const handleConfirmBooking = async (e) => {
     e.preventDefault();
-
     if (!selectedVehicle) return;
 
     if (
@@ -98,7 +105,6 @@ const FarmerDashboard = () => {
     }
 
     const farmer = JSON.parse(localStorage.getItem("user"));
-
     const booking = {
       farmerId: farmer.userId,
       farmerName: farmer.firstName + " " + farmer.lastName || farmer.userId,
@@ -141,7 +147,7 @@ const FarmerDashboard = () => {
     }
   };
 
-  // ✅ ADD THIS NEW FUNCTION (Cancel Request)
+  // ✅ Cancel Request
   const handleCancelRequest = async (bookingId) => {
     try {
       const confirmCancel = window.confirm(
@@ -186,6 +192,7 @@ const FarmerDashboard = () => {
         console.error("Error fetching farmer bookings:", err);
       }
     };
+
     fetchFarmerBookings();
     const interval = setInterval(fetchFarmerBookings, 5000);
     return () => clearInterval(interval);
@@ -225,14 +232,14 @@ const FarmerDashboard = () => {
 
         <div className="navbar-right">
           <FaBell className="bell-icon" />
+          {/* ✅ FIXED: Use user profile picture, not vehicle image */}
           <img
-            src={
-              user?.profilePic
-                ? `http://localhost:5000${user.profilePic}`
-                : "/default_profile.png"
-            }
+            src={getImageUrl(user?.profilePic)}
             alt="Profile"
             className="profile-pic"
+            onError={(e) => {
+              e.target.src = "/default-avatar.png";
+            }}
           />
           <button className="logout-btn" onClick={handleLogout}>
             Logout
@@ -244,7 +251,7 @@ const FarmerDashboard = () => {
       <div className="greeting-section">
         <div className="greeting-left">
           <h3>
-            {greeting}, <span>{user?.userId || "Farmer"} 👋</span>
+            {greeting}, <span>{user?.firstName || user?.userId || "Farmer"} 👋</span>
           </h3>
           <p>
             {formattedDate} — {formattedTime}
@@ -256,8 +263,7 @@ const FarmerDashboard = () => {
             <input
               type="text"
               className="search-input"
-              // placeholder="Track using Tracking ID"
-              placeholder="Coming Soon,Now Not Available"
+              placeholder="Coming Soon, Now Not Available"
             />
             <FaSearch className="search-icon" />
           </div>
@@ -312,11 +318,16 @@ const FarmerDashboard = () => {
             <div className="vehicle-list">
               {vehicles.map((v) => (
                 <div key={v._id} className="vehicle-card">
+                  {/* ✅ FIXED: Image with Cloudinary support - INSIDE .map() */}
                   <img
-                    src={`http://localhost:5000${v.vehicleImages[0]}`}
+                    src={getImageUrl(v.vehicleImages?.[0])}
                     alt={v.model}
                     className="vehicle-img"
+                    onError={(e) => {
+                      e.target.src = "/placeholder-vehicle.png";
+                    }}
                   />
+
                   <h4>
                     <FaTruck /> {v.model}
                   </h4>
@@ -329,9 +340,9 @@ const FarmerDashboard = () => {
                   <p>
                     <strong>Price per Km:</strong> ₹{v.ratePerKm}
                   </p>
-                  {/* <p>
-                    <strong>Rating:</strong> ⭐ {v.rating}
-                  </p> */}
+                  <p>
+                    <strong>Rating:</strong> ⭐ {v.rating || "N/A"}
+                  </p>
                   <p>
                     <strong>Location:</strong> {v.baseLocation}
                   </p>
@@ -417,7 +428,7 @@ const FarmerDashboard = () => {
             <tbody>
               {Array.isArray(bookings) && bookings.length > 0 ? (
                 bookings.map((b, index) => (
-                  <tr key={b.id || index}>
+                  <tr key={b._id || index}>
                     <td>{b.vehicleName || "N/A"}</td>
                     <td>{b.productName || "N/A"}</td>
                     <td>{b.quantity || "-"}</td>
@@ -471,7 +482,7 @@ const FarmerDashboard = () => {
           <div className="modal-content">
             <div className="modal-header">
               <h2>
-                <FaTruck /> Book Vehicle
+                <FaTruck /> Book Vehicle: {selectedVehicle?.model}
               </h2>
               <button
                 className="modal-close"
@@ -484,9 +495,10 @@ const FarmerDashboard = () => {
             <form className="booking-form" onSubmit={handleConfirmBooking}>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Product Name</label>
+                  <label>Product Name <span style={{color: 'red'}}>*</span></label>
                   <input
                     type="text"
+                    placeholder="e.g. Wheat, Rice, Cotton"
                     required
                     value={bookingData.productName}
                     onChange={(e) =>
@@ -498,9 +510,10 @@ const FarmerDashboard = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Quantity (Tons)</label>
+                  <label>Quantity (Tons) <span style={{color: 'red'}}>*</span></label>
                   <input
                     type="number"
+                    placeholder="Enter quantity"
                     required
                     value={bookingData.quantity}
                     onChange={(e) =>
@@ -515,9 +528,10 @@ const FarmerDashboard = () => {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label>Source</label>
+                  <label>Source <span style={{color: 'red'}}>*</span></label>
                   <input
                     type="text"
+                    placeholder="Pickup location"
                     required
                     value={bookingData.source}
                     onChange={(e) =>
@@ -529,9 +543,10 @@ const FarmerDashboard = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Destination</label>
+                  <label>Destination <span style={{color: 'red'}}>*</span></label>
                   <input
                     type="text"
+                    placeholder="Drop location"
                     required
                     value={bookingData.destination}
                     onChange={(e) =>
@@ -545,7 +560,7 @@ const FarmerDashboard = () => {
               </div>
 
               <div className="form-group">
-                <label>Delivery Date</label>
+                <label>Delivery Date <span style={{color: 'red'}}>*</span></label>
                 <input
                   type="date"
                   required
@@ -568,7 +583,7 @@ const FarmerDashboard = () => {
                   Cancel
                 </button>
                 <button type="submit" className="btn-primary">
-                  Confirm Booking
+                  <FaTruck /> Confirm Booking
                 </button>
               </div>
             </form>
